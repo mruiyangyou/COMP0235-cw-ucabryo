@@ -1,0 +1,31 @@
+- name: combine results
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: get data from s3
+      ansible.builtin.aws_s3:
+        bucket: "comp0235-ucabryo"
+        object: "results"
+        src: "~/comp0235test/data/output/"
+        mode: get
+        permission: private 
+
+    - name: creae data direcotry for csv 
+      ansible.builtin.file:
+        path: ~/comp0235test/cw_outputs
+        state: directory
+        mode: '0755'
+
+    - name: run combine results code
+      ansible.builtin.command:
+        cmd: "python combine_results data/output cw_outputs"
+      args:
+        chdir: "~/comp0235test"
+
+    - name: push results to s3
+      ansible.builtin.aws_s3:
+        bucket: "comp0235-ucabryo"
+        object: "cw_outputs"
+        src: "~/comp0235test/cw_outputs"
+        mode: get
+        permission: private 

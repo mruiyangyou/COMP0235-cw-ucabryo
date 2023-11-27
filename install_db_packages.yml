@@ -1,0 +1,50 @@
+- name: Install s4pred, HHsearch, pdb70 database on each machine
+  hosts: clusters
+  tasks:
+    - name: Download s4 pred using git
+      git:
+        repo: "https://github.com/psipred/s4pred"
+        dest: "~/data/s4pred"
+    - name: Download s4 pred weights
+      get_url:
+        url: "http://bioinfadmin.cs.ucl.ac.uk/downloads/s4pred/weights.tar.gz"
+        dest: "~/data/s4pred/weights.tar.gz"
+
+    - name: Extract S4pred weights
+      unarchive:
+        src: "~/data/s4pred/weights.tar.gz"
+        dest: "~/data/s4pred/"
+        remote_src: yes
+
+    - name: Ensure hhsuite directory exists
+      file:
+        path: "~/data/hhsuite"
+        state: directory
+
+    - name: Download HHsearch
+      get_url:
+        url: "https://github.com/soedinglab/hh-suite/releases/download/v3.3.0/hhsuite-3.3.0-AVX2-Linux.tar.gz"
+        dest: "~/data/hhsuite/hhsuite.tar.gz"
+
+    - name: Extract HHsearch
+      unarchive:
+        src: "~/data/hhsuite/hhsuite.tar.gz"
+        dest: "~/data/hhsuite/"
+        remote_src: yes
+
+    - name: Ensure pdb70 directory exists
+      file:
+        path: "/home/ec2-user/data/pdb70"
+        state: directory
+
+    - name: Download PDB70 database using wget
+      shell: wget -P ~/data/pdb70 https://wwwuser.gwdg.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/pdb70_from_mmcif_latest.tar.gz
+      args:
+        creates: "~/data/pdb70/pdb70_from_mmcif_latest.tar.gz"
+
+
+    - name: Extract PDB70 database
+      unarchive:
+        src: "/home/ec2-user/data/pdb70/pdb70_from_mmcif_latest.tar.gz"
+        dest: "/home/ec2-user/data/pdb70/"
+        remote_src: yes
