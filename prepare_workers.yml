@@ -20,6 +20,8 @@
           - numpy
           - awscli
           - biopython
+          - boto3
+          - botocore
         state: present
     
     - name: Install PyTorch (CPU version)

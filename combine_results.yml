@@ -2,13 +2,33 @@
   hosts: localhost
   connection: local
   tasks:
+    - name: Download repo of assigning task from github
+      git:
+        repo: "https://github.com/mruiyangyou/comp02530test"
+        dest: "~/comp0235test"
+
+    - name: create a folder for storing seperated tasks
+      ansible.builtin.file:
+        path: ~/comp0235test/data/output
+        state: directory
+        mode: '0755' 
+
+    - name: list result_rank.out file in s3
+      amazon.aws.s3_object:
+        bucket: comp0235-ucabryo
+        prefix: results/
+        region: "eu-west-2"
+        mode: list
+      register: downloaded_data
+
     - name: get data from s3
-      ansible.builtin.aws_s3:
-        bucket: "comp0235-ucabryo"
-        object: "results"
-        src: "~/comp0235test/data/output/"
+      amazon.aws.s3_object:
+        bucket: comp0235-ucabryo
+        object: '{{ item }}'
+        dest: '/home/ec2-user/comp0235test/data/output/{{ item | basename }}'
         mode: get
-        permission: private 
+        region: "eu-west-2"
+      loop: '{{downloaded_data.s3_keys}}'
 
     - name: creae data direcotry for csv 
       ansible.builtin.file:
@@ -18,14 +38,29 @@
 
     - name: run combine results code
       ansible.builtin.command:
-        cmd: "python combine_results data/output cw_outputs"
+        cmd: "python combine_results.py data/output cw_outputs"
       args:
         chdir: "~/comp0235test"
+    
+    - name: Find files in the cw_outpouts
+      ansible.builtin.find:
+        paths: "~/comp0235test/cw_outputs"
+        file_type: file
+      register: files_to_upload
 
-    - name: push results to s3
-      ansible.builtin.aws_s3:
-        bucket: "comp0235-ucabryo"
-        object: "cw_outputs"
-        src: "~/comp0235test/cw_outputs"
-        mode: get
-        permission: private 
+    # - name: push results to s3
+    #   ansible.builtin.aws_s3:
+    #     bucket: "comp0235-ucabryo"
+    #     object: "cw_outputs"
+    #     src: "~/comp0235test/cw_outputs"
+    #     mode: get
+    #     permission: private 
+
+    - name: Upload each file to the S3 bucket
+      amazon.aws.s3_object:
+        bucket: comp0235-ucabryo
+        object: "cw_outputs/{{ item.path | basename }}"
+        src: "{{ item.path }}"
+        mode: put
+        region: "eu-west-2"
+      loop: "{{ files_to_upload.files }}"
