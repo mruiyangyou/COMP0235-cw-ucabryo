@@ -1,32 +1,31 @@
 - name: for worker to dowload its analyzing data set, perform analysis, push back results
-  hosts: clusters
+  hosts: all
   tasks:
-    - name: create a folder for storing seperated tasks
-      ansible.builtin.file:
-        path: ~/comp0235test/data/working
-        state: directory
-        mode: '0755'
+    # - name: create a folder for storing seperated tasks
+    #   ansible.builtin.file:
+    #     path: ~/comp0235test/data/working
+    #     state: directory
+    #     mode: '0755'
 
-    - name: download its data
-      ansible.builtin.aws_s3:
-        bucket: "comp0235-ucabryo"
-        object: "experiments/experiemnt_{{ rank }}.fasta"
-        src: "~/comp0235test/data/working/experiments.fasta"
-        mode: get
-        permission: private
-        region: "eu-west-2"
+    # - name: download its data
+    #   ansible.builtin.aws_s3:
+    #     bucket: "comp0235-ucabryo"
+    #     object: "experiments/experiemnt_{{ rank }}.fasta"
+    #     dest: "~/comp0235test/data/working/experiments.fasta"
+    #     mode: get
+    #     permission: private
+    #     region: "eu-west-2"
 
-    - name: Run the Python file
-      ansible.builtin.command:
-        cmd: "python ../../pipeline_script.py experiments.fasta"
-      args:
-        chdir: "~/comp0235test/data/working"
+    # - name: Run the Python file
+    #   ansible.builtin.command:
+    #     cmd: "python ../../pipeline_script.py experiments.fasta"
+    #   args:
+    #     chdir: "~/comp0235test/data/working"
 
     - name: push to s3
-      ansible.builtin.aws_s3:
+      amazon.aws.s3_object:
         bucket: "comp0235-ucabryo"
-        object: "results/res_{{ rank }}.fasta"
-        src: "~/comp0235test/data/working/hhr_out.out"
+        object: "results/res_{{ rank }}.out"
+        src: "~/comp0235test/data/working/hhr_parse.out"
         mode: put
-        permission: private
         region: "eu-west-2"
