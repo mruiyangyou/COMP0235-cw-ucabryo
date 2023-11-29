@@ -14,6 +14,7 @@
         src: "~/comp0235test/data/working/experiments.fasta"
         mode: get
         permission: private
+        region: "eu-west-2"
 
     - name: Run the Python file
       ansible.builtin.command:
@@ -28,3 +29,4 @@
         src: "~/comp0235test/data/working/hhr_out.out"
         mode: put
         permission: private
+        region: "eu-west-2"

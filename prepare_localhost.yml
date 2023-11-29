@@ -1,0 +1,52 @@
+- name: Install relevant packages on host, run the task assignment program, push the seperated task to s3 bucket
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Install yum pacakges
+      ansible.builtin.yum:
+        name: "{{ packages }}"
+      become: true
+      vars:
+        packages:
+        - python
+        - python-pip
+        - unzip
+        - wget
+        - git
+
+    - name: Download repo of assigning task from github
+      git:
+        repo: "https://github.com/mruiyangyou/comp02530test"
+        dest: "~/comp0235test"
+
+    - name: create a folder for storing seperated tasks
+      ansible.builtin.file:
+        path: ~/comp0235test/data/exp
+        state: directory
+        mode: '0755' 
+
+    - name: Install Python packages from requirements.txt
+      ansible.builtin.pip:
+        name:
+          - numpy
+          - awscli
+          - biopython
+          - pandas
+          - boto3
+          - botocore
+        state: present
+
+    - name: Run the Python file
+      ansible.builtin.command:
+        cmd: "python select_ids.py experiment_ids.txt uniprotkb_proteome_UP000005640_2023_10_05.fasta 5"
+      args:
+        chdir: "~/comp0235test"
+
+    - name: Copy the separated task to S3 buckets
+      ansible.builtin.aws_s3:
+        bucket: "comp0235-ucabryo"
+        object: "experiments/{{ item }}"
+        src: "~/comp0235test/data/exp/{{ item }}"
+        mode: put
+        permission: private
+      loop: "{{ lookup('fileglob', '~/comp0235test/data/exp/*.fasta', wantlist=True) }}"

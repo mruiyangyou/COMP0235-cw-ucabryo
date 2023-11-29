@@ -1,0 +1,22 @@
+- name: Clear Data Folder on Cluster Hosts
+  hosts: clusters
+  become: yes  # Only if you need elevated privileges
+  tasks:
+    - name: Find all files in ~/data directory
+      find:
+        paths: "/home/ec2-user/data"
+        file_type: any
+      register: files_to_delete
+
+    - name: Delete files found in ~/data directory
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ files_to_delete.files }}"
+      when: files_to_delete.matched > 0
+
+    - name: Ensure ~/data directory exists and is empty
+      file:
+        path: "~/data"
+        state: directory
+        mode: '0755'

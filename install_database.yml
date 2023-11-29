@@ -1,0 +1,76 @@
+- name: install pdb70 database on host machine, push to s3 for downloading for 
+  hosts: host
+  tasks:
+    # - name: create a folder for storing pdb70 database
+    #   ansible.builtin.file:
+    #     path: data/pdb70
+    #     state: directory
+    #     mode: '0755' 
+
+    # - name: Ensure pdb70 directory exists
+    #   file:
+    #     path: "/home/ec2-user/data/pdb70"
+    #     state: directory
+
+    # - name: Download PDB70 database using wget
+    #   shell: wget -P ~/data/pdb70 https://wwwuser.gwdg.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/pdb70_from_mmcif_latest.tar.gz
+    #   args:
+    #     creates: "~/data/pdb70/pdb70_from_mmcif_latest.tar.gz"
+
+    # - name: Extract PDB70 database
+    #   unarchive:
+    #     src: "/home/ec2-user/data/pdb70/pdb70_from_mmcif_latest.tar.gz"
+    #     dest: "/home/ec2-user/data/pdb70/"
+    #     remote_src: yes
+
+    # - name: Remove the downloaded PDB70 tar.gz file
+    #   file:
+    #     path: "/home/ec2-user/data/pdb70/pdb70_from_mmcif_latest.tar.gz"
+    #     state: absent
+
+    - name: Find files in the hhsuite directory
+      ansible.builtin.find:
+        paths: "~/data/test"
+        file_type: file
+      register: files_to_upload
+
+    - name: Upload each file to the S3 bucket
+      amazon.aws.s3_object:
+        bucket: comp0235-ucabryo
+        object: "test/{{ item.path | basename }}"
+        src: "{{ item.path }}"
+        mode: put
+        region: "eu-west-2"
+      loop: "{{ files_to_upload.files }}"
+
+
+- name: download pdb70 database from s3
+  hosts: clusters
+  tasks:
+    - name: create a folder for storing pdb70 database
+      ansible.builtin.file:
+        path: data/pdb70
+        state: directory
+        mode: '0755' 
+
+    - name: Ensure pdb70 directory exists
+      file:
+        path: "/home/ec2-user/data/pdb70"
+        state: directory
+
+    - name: list bucket pdb70
+      amazon.aws.s3_object:
+        bucket: comp0235-ucabryo
+        prefix: pdb70/
+        region: "eu-west-2"
+        mode: list
+      register: downloaded_data
+
+    - name: download data from s3
+      amazon.aws.s3_object:
+        bucket: comp0235-ucabryo
+        object: '{{ item }}'
+        dest: '/home/ec2-user/data/pdb70/{{ item | basename }}'
+        mode: get
+        region: "eu-west-2"
+      loop: '{{downloaded_data.s3_keys}}'

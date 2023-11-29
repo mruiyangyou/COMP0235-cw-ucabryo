@@ -1,5 +1,5 @@
 - name: Prepare the code to run on the remote
-  hosts: clusters
+  hosts: all
   tasks:
     - name: Install yum packages
       ansible.builtin.yum:
@@ -12,15 +12,22 @@
         - unzip
         - wget
         - git
-    - name: install pip package
+    
+    - name: Install general Python packages
       ansible.builtin.pip:
         name:
+          - scipy
+          - numpy
           - awscli
           - biopython
-          - torch
-          - numpy
-          - scipy
         state: present
+    
+    - name: Install PyTorch (CPU version)
+      ansible.builtin.pip:
+        name: torch
+        extra_args: "--index-url https://download.pytorch.org/whl/cpu"
+        state: present
+
 
     - name: Download repo of assigning task from github
       git:
