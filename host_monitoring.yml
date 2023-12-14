@@ -1,0 +1,49 @@
+- name: Install software on localhost
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Install Golang
+      dnf:
+        name: golang
+        state: present
+
+    - name: Install EPEL release
+      command: dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+
+    - name: Import RPM GPG KEY for EPEL 9
+      command: rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-9
+
+    - name: Install Prometheus and Node Exporter
+      dnf:
+        name: 
+          - golang-github-prometheus
+          - golang-github-prometheus-node-exporter
+        state: present
+        nogpgcheck: yes
+
+    - name: Install Grafana
+      dnf:
+        name: grafana
+        state: present
+
+
+- name: start the prometheus, grafana server on the host machine
+  hosts: localhost
+  become: yes
+  task:
+    - name: Start Prometheus
+      command: prometheus --config.file=/etc/prometheus/prometheus.yml
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Start Grafana server
+      systemd:
+        name: grafana-server
+        state: started
+
+    - name: Enable Grafana server on boot
+      systemd:
+        name: grafana-server
+        enabled: yes
