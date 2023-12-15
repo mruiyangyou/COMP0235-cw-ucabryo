@@ -14,6 +14,11 @@
         - wget
         - git
 
+    # - name: Ensure ~/comp0235test does not exist
+    #   file:
+    #     path: "~/comp0235test"
+    #     state: absent
+
     - name: Download repo of assigning task from github
       git:
         repo: "https://github.com/mruiyangyou/comp02530test"
@@ -43,10 +48,25 @@
         chdir: "~/comp0235test"
 
     - name: Copy the separated task to S3 buckets
-      ansible.builtin.aws_s3:
-        bucket: "comp0235-ucabryo"
-        object: "experiments/{{ item }}"
-        src: "~/comp0235test/data/exp/{{ item }}"
-        mode: put
-        permission: private
-      loop: "{{ lookup('fileglob', '~/comp0235test/data/exp/*.fasta', wantlist=True) }}"
+      block:
+        - ansible.builtin.aws_s3:
+            bucket: "comp0235-ucabryo"
+            object: "experiments/{{ item | basename }}"
+            src: "{{ item }}"
+            mode: put
+            permission: private
+          loop: "{{ lookup('fileglob', '~/comp0235test/data/exp/*.fasta', wantlist=True) }}"
+      rescue:
+        - name: Retry copying the separated task to S3 buckets
+          ansible.builtin.aws_s3:
+            bucket: "comp0235-ucabryo"
+            object: "experiments/{{ item | basename }}"
+            src: "{{ item }}"
+            mode: put
+            permission: private
+          loop: "{{ lookup('fileglob', '~/comp0235test/data/exp/*.fasta', wantlist=True) }}"
+          register: retry_task
+          until: retry_task is succeeded
+          retries: 3  # Number of retries
+          delay: 5   # Delay in seconds between retries
+

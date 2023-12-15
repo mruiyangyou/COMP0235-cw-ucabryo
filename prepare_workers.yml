@@ -22,6 +22,7 @@
           - biopython
           - boto3
           - botocore
+          - prometheus_client
         state: present
     
     - name: Install PyTorch (CPU version)

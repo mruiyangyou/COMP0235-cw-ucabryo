@@ -63,3 +63,11 @@
       state: enabled
       zone: public
       immediate: true
+
+  - name: open port 4506
+    ansible.posix.firewalld:
+      port: 4506/tcp
+      permanent: true
+      state: enabled
+      zone: public
+      immediate: true

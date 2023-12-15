@@ -1,31 +1,45 @@
 - name: for worker to dowload its analyzing data set, perform analysis, push back results
   hosts: all
   tasks:
-    # - name: create a folder for storing seperated tasks
-    #   ansible.builtin.file:
-    #     path: ~/comp0235test/data/working
-    #     state: directory
-    #     mode: '0755'
+    - name: create a folder for storing seperated tasks
+      ansible.builtin.file:
+        path: ~/comp0235test/data/working
+        state: directory
+        mode: '0755'
 
-    # - name: download its data
-    #   ansible.builtin.aws_s3:
-    #     bucket: "comp0235-ucabryo"
-    #     object: "experiments/experiemnt_{{ rank }}.fasta"
-    #     dest: "~/comp0235test/data/working/experiments.fasta"
-    #     mode: get
-    #     permission: private
-    #     region: "eu-west-2"
-
-    # - name: Run the Python file
-    #   ansible.builtin.command:
-    #     cmd: "python ../../pipeline_script.py experiments.fasta"
-    #   args:
-    #     chdir: "~/comp0235test/data/working"
-
-    - name: push to s3
-      amazon.aws.s3_object:
+    - name: download its data
+      ansible.builtin.aws_s3:
         bucket: "comp0235-ucabryo"
-        object: "results/res_{{ rank }}.out"
-        src: "~/comp0235test/data/working/hhr_parse.out"
-        mode: put
+        object: "experiments/experiment_{{ rank }}.fasta"
+        dest: "~/comp0235test/data/working/experiments.fasta"
+        mode: get
+        permission: private
         region: "eu-west-2"
+
+    - name: Run the Python file
+      ansible.builtin.command:
+        cmd: "python ../../pipeline_script.py experiments.fasta {{ rank }}"
+      args:
+        chdir: "~/comp0235test/data/working"
+
+    - name: Push to S3 with retry
+      block:
+        - name: push to s3
+          amazon.aws.s3_object:
+            bucket: "comp0235-ucabryo"
+            object: "results/res_{{ rank }}.out"
+            src: "~/comp0235test/data/working/hhr_parse.out"
+            mode: put
+            region: "eu-west-2"
+      rescue:
+        - name: Retry pushing to s3
+          amazon.aws.s3_object:
+            bucket: "comp0235-ucabryo"
+            object: "results/res_{{ rank }}.out"
+            src: "~/comp0235test/data/working/hhr_parse.out"
+            mode: put
+            region: "eu-west-2"
+          register: retry_task
+          until: retry_task is succeeded
+          retries: 3  # Number of retries
+          delay: 5   # Delay in seconds between retries

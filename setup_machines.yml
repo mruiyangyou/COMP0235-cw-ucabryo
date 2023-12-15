@@ -50,7 +50,7 @@
 #     - name: mount the filesystem
 #       ansible.posix.mount:
 #         name: data
-#         src: /dev//nvme1n1
+#         src: /dev/nvme1n1
 #         fstype: ext4
 #         state: mounted 
 #       become: true
